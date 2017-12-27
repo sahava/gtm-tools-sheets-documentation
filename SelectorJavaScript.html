@@ -1,0 +1,86 @@
+<script>
+  (function() {
+    var addContainers = function(containerSummary) {
+      var containerSelect = document.querySelector('#containers');
+      var buildButton = document.querySelector('#build');
+      var temp;
+      containerSummary = arraySortByName(containerSummary);
+      containerSummary.forEach(function(container) {
+        temp = document.createElement('option');
+        temp.value = container.containerId;
+        temp.innerHTML = container.name;
+        containerSelect.appendChild(temp);
+      });
+      containerSelect.addEventListener('change', function() {
+        resetFields();
+        buildButton.disabled = false;
+      });
+      document.querySelector('#loading').style.display = 'none';
+      document.querySelector('#accountWrapper').style.display = 'block';
+      document.querySelector('#containerWrapper').style.display = 'block';
+      containerSelect.disabled = false;
+      buildButton.disabled = false;
+    };  
+    
+    var arraySortByName = function(array) {
+      return array.sort(function(a, b) {
+        var aName = a.name.toUpperCase();
+        var bName = b.name.toUpperCase();
+        return (aName < bName) ? -1 : (aName > bName) ? 1 : 0;
+      });
+    };
+    
+    var resetFields = function() {
+      var info = document.querySelector('#info');
+      info.innerHTML = 'Select the Google Tag Manager container, whose <strong>latest version</strong> you want to use to generate the container documentation.';
+    };
+    
+    var addAccounts = function(accountSummary) {
+      resetFields();
+      var accountSelect = document.querySelector('#accounts');
+      var temp;
+      accountSummary = arraySortByName(accountSummary);  
+      accountSummary.forEach(function(acct) {
+        temp = document.createElement('option');
+        temp.value = acct.accountId;
+        temp.innerHTML = acct.name;
+        accountSelect.appendChild(temp);
+      });      
+      accountSelect.addEventListener('change', function(e) {
+        var accountId = e.target.value;
+        var containerSelect = document.querySelector('#containers');
+        var buildButton = document.querySelector('#build');
+        containerSelect.disabled = true;
+        containerSelect.innerHTML = '';
+        buildButton.disabled = true;
+        google.script.run.withSuccessHandler(addContainers).fetchContainers(accountId);
+      });
+      google.script.run.withSuccessHandler(addContainers).fetchContainers(accountSelect.options[accountSelect.selectedIndex].value);
+    };
+    
+    var onError = function(error) {
+      var info = document.querySelector('#info');
+      info.innerHTML = '<span class="error">' + error.message + '</span>';
+    };
+    
+    google.script.run.withSuccessHandler(addAccounts).fetchAccounts();
+    
+    document.querySelector('#close').addEventListener('click', function() {
+      google.script.host.close();
+    });
+    
+    document.querySelector('#build').addEventListener('click', function() {
+      var buildButton = document.querySelector('#build');
+      var accounts = document.querySelector('#accounts');
+      var containers = document.querySelector('#containers');
+      buildButton.disabled = true;
+      google.script.run
+        .withFailureHandler(onError)
+        .withSuccessHandler(function() { google.script.host.close(); })
+        .startProcess(
+          accounts.options[accounts.selectedIndex].value, 
+          containers.options[containers.selectedIndex].value
+        );
+    });
+  })();
+</script>
