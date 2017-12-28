@@ -73,7 +73,11 @@
       var buildButton = document.querySelector('#build');
       var accounts = document.querySelector('#accounts');
       var containers = document.querySelector('#containers');
+      accounts.disabled = true;
+      containers.disabled = true;
       buildButton.disabled = true;
+      buildButton.className = 'share';
+      buildButton.innerHTML = 'Working...';
       google.script.run
         .withFailureHandler(onError)
         .withSuccessHandler(function() { google.script.host.close(); })
