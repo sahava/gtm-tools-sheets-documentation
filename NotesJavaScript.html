@@ -5,7 +5,12 @@
     });
     
     document.querySelector('#mark').addEventListener('click', function() {
-      google.script.run.withSuccessHandler(function() { google.script.host.close(); }).markChangedNotes();
+      google.script.run.withSuccessHandler(function() { google.script.host.close(); }).processNotes('mark');
     });
+    
+    document.querySelector('#push').addEventListener('click', function() {
+      google.script.run.withSuccessHandler(function() { google.script.host.close(); }).processNotes('push');
+    });
+
   })();
 </script>

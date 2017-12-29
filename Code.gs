@@ -33,7 +33,7 @@ function getAssetOverview(assets) {
   }
 }
 
-function markChangedNotes() {
+function processNotes(action) {
   var namedRanges = SpreadsheetApp.getActiveSpreadsheet().getNamedRanges();
   var rangesObject = {};
   
@@ -49,17 +49,19 @@ function markChangedNotes() {
     }
   });
   
-  for (var item in rangesObject) {
-    var notes = rangesObject[item].notes.getValues();
-    var json = rangesObject[item].json.getValues();
-    notes.forEach(function(note, index) {
-      var jsonNote = JSON.parse(json[index]).notes || '';
-      if ((note[0] === '' && jsonNote === '') || (note[0] === jsonNote)) { 
-        rangesObject[item].notes.getCell(index + 1, 1).setBackground('#fff');
-      } else {
-        rangesObject[item].notes.getCell(index + 1, 1).setBackground('#f6b26b');
-      }
-    });
+  if (action === 'mark') {
+    for (var item in rangesObject) {
+      var notes = rangesObject[item].notes.getValues();
+      var json = rangesObject[item].json.getValues();
+      notes.forEach(function(note, index) {
+        var jsonNote = JSON.parse(json[index]).notes || '';
+        if ((note[0] === '' && jsonNote === '') || (note[0] === jsonNote)) { 
+          rangesObject[item].notes.getCell(index + 1, 1).setBackground('#fff');
+        } else {
+          rangesObject[item].notes.getCell(index + 1, 1).setBackground('#f6b26b');
+        }
+      });
+    }
   }
 }
 
@@ -423,7 +425,8 @@ function openNotesModal() {
 
 function onOpen() {
   var menu = SpreadsheetApp.getUi().createAddonMenu();
-  menu.addItem('Build documentation', 'openContainerSelector');
-  menu.addItem('Process notes', 'openNotesModal');
+  menu.addSubMenu(SpreadsheetApp.getUi().createMenu('Documentation builder')
+                  .addItem('Build documentation', 'openContainerSelector')
+                  .addItem('Manage notes', 'openNotesModal'));
   menu.addToUi();
 }
