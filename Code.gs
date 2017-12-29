@@ -33,6 +33,170 @@ function getAssetOverview(assets) {
   }
 }
 
+function formatTags(tags) {
+  var data = [];
+  tags.forEach(function(tag) {
+    data.push([
+      tag.name,
+      tag.tagId,
+      tag.type,
+      tag.parentFolderId || '',
+      new Date(parseInt(tag.fingerprint)),
+      tag.firingTriggerId ? tag.firingTriggerId.join(',') : '',
+      tag.blockingTriggerId ? tag.blockingTriggerId.join(',') : '',
+      tag.setupTag ? tag.setupTag[0].tagName : '',
+      tag.teardownTag ? tag.teardownTag[0].tagName : '',
+      tag.notes || '',
+      JSON.stringify(tag)
+    ]);
+  });
+  return data;
+}
+
+function formatVariables(variables) {
+  var data = [];
+  variables.forEach(function(variable) {
+    data.push([
+      variable.name,
+      variable.variableId,
+      variable.type,
+      variable.parentFolderId || '',
+      new Date(parseInt(variable.fingerprint)),
+      variable.notes || '',
+      JSON.stringify(variable)
+    ]);
+  });
+  return data;
+}
+
+function formatTriggers(triggers) {
+  var data = [];
+  triggers.forEach(function(trigger) {
+    data.push([
+      trigger.name,
+      trigger.triggerId,
+      trigger.type,
+      trigger.parentFolderId || '',
+      new Date(parseInt(trigger.fingerprint)),
+      trigger.notes || '',
+      JSON.stringify(trigger)
+    ]);
+  });
+  return data;
+}
+
+function buildTriggerSheet(containerObj) {
+  var sheetName = containerObj.containerPublicId + '_triggers';
+  var sheet = insertSheet(sheetName);
+  
+  var triggerLabels = ['Trigger name', 'Trigger ID', 'Trigger type', 'Folder ID', 'Last modified', 'Notes', 'Trigger JSON'];
+
+  var headerRange = sheet.getRange(1,1,1,triggerLabels.length);
+  headerRange.mergeAcross();
+  headerRange.setValue('Triggers for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
+  headerRange.setBackground('#1155cc');
+  headerRange.setFontWeight('bold');
+  headerRange.setFontColor('white');
+
+  var labelsRange = sheet.getRange(2,1,1,triggerLabels.length);
+  labelsRange.setValues([triggerLabels]);
+  labelsRange.setFontWeight('bold');
+  
+  sheet.setColumnWidth(1, 305);
+  sheet.setColumnWidth(2, 75);
+  sheet.setColumnWidth(3, 100);
+  sheet.setColumnWidth(4, 75);
+  sheet.setColumnWidth(5, 130);
+  sheet.setColumnWidth(6, 305);
+  sheet.setColumnWidth(7, 100);
+  
+  var triggersObject = formatTriggers(containerObj.triggers);
+  var dataRange = sheet.getRange(3,1,triggersObject.length,triggerLabels.length);
+  dataRange.setValues(triggersObject);
+  
+  var formats = triggersObject.map(function(a) {
+    return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@'];
+  });
+  dataRange.setNumberFormats(formats);
+  dataRange.setHorizontalAlignment('left');
+}
+
+function buildVariableSheet(containerObj) {
+  var sheetName = containerObj.containerPublicId + '_variabels';
+  var sheet = insertSheet(sheetName);
+  
+  var variableLabels = ['Variable name', 'Variable ID', 'Variable type', 'Folder ID', 'Last modified', 'Notes', 'Variable JSON'];
+
+  var headerRange = sheet.getRange(1,1,1,variableLabels.length);
+  headerRange.mergeAcross();
+  headerRange.setValue('Variables for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
+  headerRange.setBackground('#1155cc');
+  headerRange.setFontWeight('bold');
+  headerRange.setFontColor('white');
+
+  var labelsRange = sheet.getRange(2,1,1,variableLabels.length);
+  labelsRange.setValues([variableLabels]);
+  labelsRange.setFontWeight('bold');
+  
+  sheet.setColumnWidth(1, 305);
+  sheet.setColumnWidth(2, 75);
+  sheet.setColumnWidth(3, 100);
+  sheet.setColumnWidth(4, 75);
+  sheet.setColumnWidth(5, 130);
+  sheet.setColumnWidth(6, 305);
+  sheet.setColumnWidth(7, 100);
+  
+  var variablesObject = formatVariables(containerObj.variables);
+  var dataRange = sheet.getRange(3,1,variablesObject.length,variableLabels.length);
+  dataRange.setValues(variablesObject);
+  
+  var formats = variablesObject.map(function(a) {
+    return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@'];
+  });
+  dataRange.setNumberFormats(formats);
+  dataRange.setHorizontalAlignment('left');
+}
+
+function buildTagSheet(containerObj) {
+  var sheetName = containerObj.containerPublicId + '_tags';
+  var sheet = insertSheet(sheetName);
+  
+  var tagLabels = ['Tag name', 'Tag ID', 'Tag type', 'Folder ID', 'Last modified', 'Firing trigger IDs', 'Exception trigger IDs', 'Setup tag', 'Cleanup tag', 'Notes', 'Tag JSON'];
+
+  var headerRange = sheet.getRange(1,1,1,tagLabels.length);
+  headerRange.mergeAcross();
+  headerRange.setValue('Tags for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
+  headerRange.setBackground('#1155cc');
+  headerRange.setFontWeight('bold');
+  headerRange.setFontColor('white');
+
+  var labelsRange = sheet.getRange(2,1,1,tagLabels.length);
+  labelsRange.setValues([tagLabels]);
+  labelsRange.setFontWeight('bold');
+  
+  sheet.setColumnWidth(1, 305);
+  sheet.setColumnWidth(2, 75);
+  sheet.setColumnWidth(3, 100);
+  sheet.setColumnWidth(4, 75);
+  sheet.setColumnWidth(5, 130);
+  sheet.setColumnWidth(6, 150);
+  sheet.setColumnWidth(7, 150);
+  sheet.setColumnWidth(8, 205);
+  sheet.setColumnWidth(9, 205);
+  sheet.setColumnWidth(10, 305);
+  sheet.setColumnWidth(11, 100);
+  
+  var tagsObject = formatTags(containerObj.tags);
+  var dataRange = sheet.getRange(3,1,tagsObject.length,tagLabels.length);
+  dataRange.setValues(tagsObject);
+  
+  var formats = tagsObject.map(function(a) {
+    return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@', '@', '@', '@', '@'];
+  });
+  dataRange.setNumberFormats(formats);
+  dataRange.setHorizontalAlignment('left');
+}
+
 function buildContainerSheet(containerObj) {
   var sheetName = containerObj.containerPublicId + '_container';
   var sheet = insertSheet(sheetName);
@@ -51,15 +215,15 @@ function buildContainerSheet(containerObj) {
   
   var containerContent = sheet.getRange(2,1,containerLabels.length,2);
   containerContent.setValues([
-    ['Container ID:', containerObj.containerPublicId],
-    ['Container name:', containerObj.containerName],
-    ['Container notes:', containerObj.containerNotes],
-    ['Latest version ID:', containerObj.versionId],
-    ['Version name:', containerObj.versionName],
-    ['Version description:', containerObj.versionDescription],
-    ['Version created/published:', containerObj.versionCreatedOrPublished],
-    ['Link to container:', containerObj.containerLink],
-    ['API path:', 'accounts/' + containerObj.accountId + '/containers/' + containerObj.containerId + '/versions/' + containerObj.versionId]
+    [containerLabels[0], containerObj.containerPublicId],
+    [containerLabels[1], containerObj.containerName],
+    [containerLabels[2], containerObj.containerNotes],
+    [containerLabels[3], containerObj.versionId],
+    [containerLabels[4], containerObj.versionName],
+    [containerLabels[5], containerObj.versionDescription],
+    [containerLabels[6], containerObj.versionCreatedOrPublished],
+    [containerLabels[7], containerObj.containerLink],
+    [containerLabels[8], 'accounts/' + containerObj.accountId + '/containers/' + containerObj.containerId + '/versions/' + containerObj.versionId]
   ]);
   containerContent.setBackgrounds([
     ['white', 'white'],
@@ -99,16 +263,17 @@ function buildContainerSheet(containerObj) {
   }
   emptyCellFix.setValues(emptyCells);
   
-  var overviewHeader = sheet.getRange(1,4,1,6);
-  overviewHeader.setValues([['Overview of contents', '', '', '', '', '']]);
+  var overviewHeader = sheet.getRange(1,4,1,8);
+  overviewHeader.setValues([['Overview of contents', '', '', '', '', '', '', '']]);
   overviewHeader.mergeAcross();
   overviewHeader.setBackground('#85200c');
   overviewHeader.setFontWeight('bold');
   overviewHeader.setHorizontalAlignment('center');
   overviewHeader.setFontColor('white');
   
-  var overviewSubHeader = sheet.getRange(2,4,1,6);
-  overviewSubHeader.setValues([['Tag type', 'Quantity', 'Trigger type', 'Quantity', 'Variable type', 'Quantity']]);
+  var overviewSubHeader = sheet.getRange(2,4,1,8);
+  overviewSubHeader.setValues([['Tag type', 'Quantity', 'Trigger type', 'Quantity', 'Variable type', 'Quantity', 'Folder ID', 'Folder name']]);
+  overviewSubHeader.setHorizontalAlignments([['right','left','right','left','right','left', 'right', 'left']]);
   overviewSubHeader.setFontWeight('bold');
   overviewSubHeader.setBackground('#e6d6d6');
   
@@ -133,12 +298,18 @@ function buildContainerSheet(containerObj) {
   sheet.getRange(3,8,variables.sortedlist.length,1).setHorizontalAlignment('right');
   sheet.getRange(3,9,variables.sortedlist.length,1).setHorizontalAlignment('left');
   
-  var contentLength = Math.max(tags.sortedlist.length, variables.sortedlist.length, triggers.sortedlist.length);
-  var totalRow = sheet.getRange(contentLength + 3, 4, 1, 6);
+  var folders = containerObj.folders.map(function(folder) {
+    return [folder.folderId, folder.name];
+  });
+  var foldersRange = sheet.getRange(3,10,folders.length,2);
+  foldersRange.setValues(folders);
+  
+  var contentLength = Math.max(tags.sortedlist.length, variables.sortedlist.length, triggers.sortedlist.length, folders.length);
+  var totalRow = sheet.getRange(contentLength + 3, 4, 1, 8);
   totalRow.setValues([
-    ['Total tags:', tagsSum, 'Total triggers:', triggersSum, 'Total variables:', variablesSum]
+    ['Total tags:', tagsSum, 'Total triggers:', triggersSum, 'Total variables:', variablesSum, '', '']
   ]);
-  totalRow.setHorizontalAlignments([['right', 'left', 'right', 'left', 'right', 'left']]);
+  totalRow.setHorizontalAlignments([['right', 'left', 'right', 'left', 'right', 'left', 'right', 'left']]);
   totalRow.setFontWeight('bold');
   totalRow.setBackground('#e6d6d6');
 }
@@ -154,15 +325,19 @@ function startProcess(aid, cid) {
     containerPublicId: latestVersion.container.publicId,
     containerNotes: latestVersion.container.notes || '',
     containerLink: latestVersion.container.tagManagerUrl,
-    versionName: latestVersion.name,
+    versionName: latestVersion.name || '',
     versionId: latestVersion.containerVersionId,
     versionDescription: latestVersion.description || '',
     versionCreatedOrPublished: new Date(parseInt(latestVersion.fingerprint)),
     tags: latestVersion.tag || [],
     variables: latestVersion.variable || [],
-    triggers: latestVersion.trigger || []
+    triggers: latestVersion.trigger || [],
+    folders: latestVersion.folder || []
   };
   buildContainerSheet(containerObj);
+  buildTagSheet(containerObj);
+  buildTriggerSheet(containerObj);
+  buildVariableSheet(containerObj);
 }
 
 function fetchLatestVersion(aid, cid, vid) {
