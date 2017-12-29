@@ -33,6 +33,12 @@ function getAssetOverview(assets) {
   }
 }
 
+function checkNotes() {
+  var sheet = SpreadsheetApp.getActiveSheet();
+  var selectedCells = sheet.getActiveRange();
+  Logger.log(selectedCells.get);
+}
+
 function formatTags(tags) {
   var data = [];
   tags.forEach(function(tag) {
@@ -85,23 +91,36 @@ function formatTriggers(triggers) {
   return data;
 }
 
+function setNamedRanges(sheet,notesIndex,jsonIndex,colLength) {
+  var notesRange = sheet.getRange(3,notesIndex,colLength,1);
+  var notesRangeName = sheet.getName().replace('-','_') + '_notes';
+  SpreadsheetApp.getActiveSpreadsheet().setNamedRange(notesRangeName, SpreadsheetApp.getActiveSpreadsheet().getRange(sheet.getName() + '!' + notesRange.getA1Notation()));
+  var jsonRange = sheet.getRange(3,jsonIndex,colLength,1);
+  var jsonRangeName = sheet.getName().replace('-','_') + '_json';
+  SpreadsheetApp.getActiveSpreadsheet().setNamedRange(jsonRangeName, SpreadsheetApp.getActiveSpreadsheet().getRange(sheet.getName() + '!' + jsonRange.getA1Notation()));
+}
+
+function createHeaders(sheet, labels, title) {
+  var headerRange = sheet.getRange(1,1,1,labels.length);
+  headerRange.mergeAcross();
+  headerRange.setValue(title);
+  headerRange.setBackground('#1155cc');
+  headerRange.setFontWeight('bold');
+  headerRange.setFontColor('white');
+  
+  var labelsRange = sheet.getRange(2,1,1,labels.length);
+  labelsRange.setValues([labels]);
+  labelsRange.setFontWeight('bold');
+}
+
 function buildTriggerSheet(containerObj) {
   var sheetName = containerObj.containerPublicId + '_triggers';
   var sheet = insertSheet(sheetName);
   
-  var triggerLabels = ['Trigger name', 'Trigger ID', 'Trigger type', 'Folder ID', 'Last modified', 'Notes', 'Trigger JSON'];
+  var triggerLabels = ['Trigger name', 'Trigger ID', 'Trigger type', 'Folder ID', 'Last modified', 'Notes', 'JSON'];
 
-  var headerRange = sheet.getRange(1,1,1,triggerLabels.length);
-  headerRange.mergeAcross();
-  headerRange.setValue('Triggers for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
-  headerRange.setBackground('#1155cc');
-  headerRange.setFontWeight('bold');
-  headerRange.setFontColor('white');
+  createHeaders(sheet, triggerLabels, 'Triggers for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
 
-  var labelsRange = sheet.getRange(2,1,1,triggerLabels.length);
-  labelsRange.setValues([triggerLabels]);
-  labelsRange.setFontWeight('bold');
-  
   sheet.setColumnWidth(1, 305);
   sheet.setColumnWidth(2, 75);
   sheet.setColumnWidth(3, 100);
@@ -114,6 +133,8 @@ function buildTriggerSheet(containerObj) {
   var dataRange = sheet.getRange(3,1,triggersObject.length,triggerLabels.length);
   dataRange.setValues(triggersObject);
   
+  setNamedRanges(sheet,triggerLabels.indexOf('Notes') + 1,triggerLabels.indexOf('JSON') + 1,triggersObject.length);
+  
   var formats = triggersObject.map(function(a) {
     return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@'];
   });
@@ -122,22 +143,13 @@ function buildTriggerSheet(containerObj) {
 }
 
 function buildVariableSheet(containerObj) {
-  var sheetName = containerObj.containerPublicId + '_variabels';
+  var sheetName = containerObj.containerPublicId + '_variables';
   var sheet = insertSheet(sheetName);
   
-  var variableLabels = ['Variable name', 'Variable ID', 'Variable type', 'Folder ID', 'Last modified', 'Notes', 'Variable JSON'];
+  var variableLabels = ['Variable name', 'Variable ID', 'Variable type', 'Folder ID', 'Last modified', 'Notes', 'JSON'];
 
-  var headerRange = sheet.getRange(1,1,1,variableLabels.length);
-  headerRange.mergeAcross();
-  headerRange.setValue('Variables for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
-  headerRange.setBackground('#1155cc');
-  headerRange.setFontWeight('bold');
-  headerRange.setFontColor('white');
+  createHeaders(sheet, variableLabels, 'Variables for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
 
-  var labelsRange = sheet.getRange(2,1,1,variableLabels.length);
-  labelsRange.setValues([variableLabels]);
-  labelsRange.setFontWeight('bold');
-  
   sheet.setColumnWidth(1, 305);
   sheet.setColumnWidth(2, 75);
   sheet.setColumnWidth(3, 100);
@@ -150,6 +162,8 @@ function buildVariableSheet(containerObj) {
   var dataRange = sheet.getRange(3,1,variablesObject.length,variableLabels.length);
   dataRange.setValues(variablesObject);
   
+  setNamedRanges(sheet,variableLabels.indexOf('Notes') + 1,variableLabels.indexOf('JSON') + 1,variablesObject.length);
+  
   var formats = variablesObject.map(function(a) {
     return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@'];
   });
@@ -161,19 +175,10 @@ function buildTagSheet(containerObj) {
   var sheetName = containerObj.containerPublicId + '_tags';
   var sheet = insertSheet(sheetName);
   
-  var tagLabels = ['Tag name', 'Tag ID', 'Tag type', 'Folder ID', 'Last modified', 'Firing trigger IDs', 'Exception trigger IDs', 'Setup tag', 'Cleanup tag', 'Notes', 'Tag JSON'];
+  var tagLabels = ['Tag name', 'Tag ID', 'Tag type', 'Folder ID', 'Last modified', 'Firing trigger IDs', 'Exception trigger IDs', 'Setup tag', 'Cleanup tag', 'Notes', 'JSON'];
 
-  var headerRange = sheet.getRange(1,1,1,tagLabels.length);
-  headerRange.mergeAcross();
-  headerRange.setValue('Tags for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
-  headerRange.setBackground('#1155cc');
-  headerRange.setFontWeight('bold');
-  headerRange.setFontColor('white');
+  createHeaders(sheet, tagLabels, 'Tags for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
 
-  var labelsRange = sheet.getRange(2,1,1,tagLabels.length);
-  labelsRange.setValues([tagLabels]);
-  labelsRange.setFontWeight('bold');
-  
   sheet.setColumnWidth(1, 305);
   sheet.setColumnWidth(2, 75);
   sheet.setColumnWidth(3, 100);
@@ -189,6 +194,8 @@ function buildTagSheet(containerObj) {
   var tagsObject = formatTags(containerObj.tags);
   var dataRange = sheet.getRange(3,1,tagsObject.length,tagLabels.length);
   dataRange.setValues(tagsObject);
+
+  setNamedRanges(sheet,tagLabels.indexOf('Notes') + 1,tagLabels.indexOf('JSON') + 1,tagsObject.length);
   
   var formats = tagsObject.map(function(a) {
     return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@', '@', '@', '@', '@'];
@@ -379,5 +386,6 @@ function openContainerSelector() {
 function onOpen() {
   var menu = SpreadsheetApp.getUi().createAddonMenu();
   menu.addItem('Build documentation', 'openContainerSelector');
+  menu.addItem('Check notes', 'checkNotes');
   menu.addToUi();
 }
