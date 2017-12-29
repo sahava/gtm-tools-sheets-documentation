@@ -1,0 +1,11 @@
+<script>
+  (function() {
+    document.querySelector('#close').addEventListener('click', function() {
+      google.script.host.close();
+    });
+    
+    document.querySelector('#mark').addEventListener('click', function() {
+      google.script.run.withSuccessHandler(function() { google.script.host.close(); }).markChangedNotes();
+    });
+  })();
+</script>

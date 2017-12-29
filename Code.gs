@@ -33,10 +33,34 @@ function getAssetOverview(assets) {
   }
 }
 
-function checkNotes() {
-  var sheet = SpreadsheetApp.getActiveSheet();
-  var selectedCells = sheet.getActiveRange();
-  Logger.log(selectedCells.get);
+function markChangedNotes() {
+  var namedRanges = SpreadsheetApp.getActiveSpreadsheet().getNamedRanges();
+  var rangesObject = {};
+  
+  namedRanges.forEach(function(range) {
+    var name = range.getName();
+    var bareName = name.replace(/(_notes|_json)$/g, '');
+    rangesObject[bareName] = rangesObject[bareName] || {};
+    if (/_notes$/.test(name)) {
+      rangesObject[bareName].notes = range.getRange();
+    }
+    if (/_json$/.test(name)) {    
+      rangesObject[bareName].json = range.getRange();
+    }
+  });
+  
+  for (var item in rangesObject) {
+    var notes = rangesObject[item].notes.getValues();
+    var json = rangesObject[item].json.getValues();
+    notes.forEach(function(note, index) {
+      var jsonNote = JSON.parse(json[index]).notes || '';
+      if ((note[0] === '' && jsonNote === '') || (note[0] === jsonNote)) { 
+        rangesObject[item].notes.getCell(index + 1, 1).setBackground('#fff');
+      } else {
+        rangesObject[item].notes.getCell(index + 1, 1).setBackground('#f6b26b');
+      }
+    });
+  }
 }
 
 function formatTags(tags) {
@@ -130,16 +154,18 @@ function buildTriggerSheet(containerObj) {
   sheet.setColumnWidth(7, 100);
   
   var triggersObject = formatTriggers(containerObj.triggers);
-  var dataRange = sheet.getRange(3,1,triggersObject.length,triggerLabels.length);
-  dataRange.setValues(triggersObject);
+  if (triggersObject.length) {
+    var dataRange = sheet.getRange(3,1,triggersObject.length,triggerLabels.length);
+    dataRange.setValues(triggersObject);
   
-  setNamedRanges(sheet,triggerLabels.indexOf('Notes') + 1,triggerLabels.indexOf('JSON') + 1,triggersObject.length);
+    setNamedRanges(sheet,triggerLabels.indexOf('Notes') + 1,triggerLabels.indexOf('JSON') + 1,triggersObject.length);
   
-  var formats = triggersObject.map(function(a) {
-    return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@'];
-  });
-  dataRange.setNumberFormats(formats);
-  dataRange.setHorizontalAlignment('left');
+    var formats = triggersObject.map(function(a) {
+      return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@'];
+    });
+    dataRange.setNumberFormats(formats);
+    dataRange.setHorizontalAlignment('left');
+  }
 }
 
 function buildVariableSheet(containerObj) {
@@ -159,16 +185,18 @@ function buildVariableSheet(containerObj) {
   sheet.setColumnWidth(7, 100);
   
   var variablesObject = formatVariables(containerObj.variables);
-  var dataRange = sheet.getRange(3,1,variablesObject.length,variableLabels.length);
-  dataRange.setValues(variablesObject);
+  if (variablesObject.length) {
+    var dataRange = sheet.getRange(3,1,variablesObject.length,variableLabels.length);
+    dataRange.setValues(variablesObject);
   
-  setNamedRanges(sheet,variableLabels.indexOf('Notes') + 1,variableLabels.indexOf('JSON') + 1,variablesObject.length);
+    setNamedRanges(sheet,variableLabels.indexOf('Notes') + 1,variableLabels.indexOf('JSON') + 1,variablesObject.length);
   
-  var formats = variablesObject.map(function(a) {
-    return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@'];
-  });
-  dataRange.setNumberFormats(formats);
-  dataRange.setHorizontalAlignment('left');
+    var formats = variablesObject.map(function(a) {
+      return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@'];
+    });
+    dataRange.setNumberFormats(formats);
+    dataRange.setHorizontalAlignment('left');
+  }
 }
 
 function buildTagSheet(containerObj) {
@@ -192,16 +220,18 @@ function buildTagSheet(containerObj) {
   sheet.setColumnWidth(11, 100);
   
   var tagsObject = formatTags(containerObj.tags);
-  var dataRange = sheet.getRange(3,1,tagsObject.length,tagLabels.length);
-  dataRange.setValues(tagsObject);
+  if (tagsObject.length) {
+    var dataRange = sheet.getRange(3,1,tagsObject.length,tagLabels.length);
+    dataRange.setValues(tagsObject);
 
-  setNamedRanges(sheet,tagLabels.indexOf('Notes') + 1,tagLabels.indexOf('JSON') + 1,tagsObject.length);
+    setNamedRanges(sheet,tagLabels.indexOf('Notes') + 1,tagLabels.indexOf('JSON') + 1,tagsObject.length);
   
-  var formats = tagsObject.map(function(a) {
-    return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@', '@', '@', '@', '@'];
-  });
-  dataRange.setNumberFormats(formats);
-  dataRange.setHorizontalAlignment('left');
+    var formats = tagsObject.map(function(a) {
+      return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@', '@', '@', '@', '@'];
+    });
+    dataRange.setNumberFormats(formats);
+    dataRange.setHorizontalAlignment('left');
+  }
 }
 
 function buildContainerSheet(containerObj) {
@@ -308,8 +338,10 @@ function buildContainerSheet(containerObj) {
   var folders = containerObj.folders.map(function(folder) {
     return [folder.folderId, folder.name];
   });
-  var foldersRange = sheet.getRange(3,10,folders.length,2);
-  foldersRange.setValues(folders);
+  if (folders.length) {
+    var foldersRange = sheet.getRange(3,10,folders.length,2);
+    foldersRange.setValues(folders);
+  }
   
   var contentLength = Math.max(tags.sortedlist.length, variables.sortedlist.length, triggers.sortedlist.length, folders.length);
   var totalRow = sheet.getRange(contentLength + 3, 4, 1, 8);
@@ -383,9 +415,15 @@ function openContainerSelector() {
   SpreadsheetApp.getUi().showModalDialog(html, 'Select Container');
 }
 
+function openNotesModal() {
+  var ui = SpreadsheetApp.getUi();
+  var html = HtmlService.createTemplateFromFile('NotesModal').evaluate().setWidth(400).setHeight(150);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Process Notes');
+}
+
 function onOpen() {
   var menu = SpreadsheetApp.getUi().createAddonMenu();
   menu.addItem('Build documentation', 'openContainerSelector');
-  menu.addItem('Check notes', 'checkNotes');
+  menu.addItem('Process notes', 'openNotesModal');
   menu.addToUi();
 }

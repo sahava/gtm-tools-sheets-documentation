@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <?!= include('Styles') ?>
+  </head>
+  <body>
+    <div class="block" id="info">
+      Select <strong>Mark changes</strong> to <span style="background: #f6b26b">highlight</span> changed <strong>Notes</strong> fields in the sheets. 
+      <br/><br/>
+      Select <strong>Push changes</strong> to update changes in the sheets to your Google Tag Manager containers.
+    </div>
+    <div class="block">
+      <button class="action" id="mark">Mark changes</button>
+      <button class="create" id="update">Push changes</button>
+      <button id="close">Close</button>
+    </div>
+    <?!= include('NotesJavaScript'); ?>
+</body>
+</html>
+
+
