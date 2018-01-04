@@ -1,5 +1,41 @@
+/* GTM API methods */
+
+function fetchLatestVersion(aid, cid, vid) {
+  var parent = 'accounts/' + aid + '/containers/' + cid + '/versions/' + vid;
+  return TagManager.Accounts.Containers.Versions.get(parent);
+}
+
+function fetchLatestVersionId(aid, cid) {
+  var parent = 'accounts/' + aid + '/containers/' + cid;
+  return TagManager.Accounts.Containers.Version_headers.latest(parent, {
+    fields: 'containerVersionId'
+  }).containerVersionId;
+}
+
+function fetchAccounts() {
+  return TagManager.Accounts.list({
+    fields: 'account(accountId,name)'
+  }).account;
+}
+
+function fetchContainers(aid) {
+  var parent = 'accounts/' + aid;
+  return TagManager.Accounts.Containers.list(parent, {
+    fields: 'container(accountId,containerId,publicId,name)'
+  }).container;
+}
+
 function createVersion(aid, cid, wsid) {
   return TagManager.Accounts.Containers.Workspaces.create_version({"name": "Created by GTM Tools Google Sheets add-on", "notes": "Created by GTM Tools Google Sheets add-on"}, 'accounts/' + aid + '/containers/' + cid + '/workspaces/' + wsid).containerVersion;
+}
+
+function getWorkspaces() {
+  var sheet = SpreadsheetApp.getActiveSheet();
+  var containerSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheet.getName().replace(/_.+$/,'_container'));
+  var apiPath = containerSheet.getRange('B10').getValue().replace(/\/versions\/.*/, '');
+  return TagManager.Accounts.Containers.Workspaces.list(apiPath, {
+    fields: 'workspace(name, workspaceId)'
+  }).workspace;
 }
 
 function insertSheet(sheetName) {
@@ -11,15 +47,6 @@ function insertSheet(sheetName) {
     return response === ui.Button.OK ? sheet : false;
   }
   return SpreadsheetApp.getActiveSpreadsheet().insertSheet(sheetName);
-}
-
-function getWorkspaces() {
-  var sheet = SpreadsheetApp.getActiveSheet();
-  var containerSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheet.getName().replace(/_.+$/,'_container'));
-  var apiPath = containerSheet.getRange('B10').getValue().replace(/\/versions\/.*/, '');
-  return TagManager.Accounts.Containers.Workspaces.list(apiPath, {
-    fields: 'workspace(name, workspaceId)'
-  }).workspace;
 }
 
 function getAssetOverview(assets) {
@@ -73,16 +100,16 @@ function updateSingleNote(noteToUpdate, wsid) {
   var json = noteToUpdate.json;
   json.notes = noteToUpdate.note;
   
-  var accountId = noteToUpdate.json.accountId;
-  var containerId = noteToUpdate.json.containerId;
-  if ('tagId' in json) {
-    return TagManager.Accounts.Containers.Workspaces.Tags.update(JSON.stringify(json), 'accounts/' + accountId + '/containers/' + containerId + '/workspaces/' + wsid + '/tags/' + json.tagId);
+  var path = 'accounts/' + noteToUpdate.json.accountId + '/containers/' + noteToUpdate.json.containerId + '/workspaces/' + wsid;
+
+  if ('tagId' in json) { 
+    return TagManager.Accounts.Containers.Workspaces.Tags.update(JSON.stringify(json), path + '/tags/' + json.tagId);
   }
   if ('triggerId' in json) {
-    return TagManager.Accounts.Containers.Workspaces.Triggers.update(JSON.stringify(json), 'accounts/' + accountId + '/containers/' + containerId + '/workspaces/' + wsid + '/triggers/' + json.triggerId);
+    return TagManager.Accounts.Containers.Workspaces.Triggers.update(JSON.stringify(json), path + '/triggers/' + json.triggerId);
   }
   if ('variableId' in json) {
-    return TagManager.Accounts.Containers.Workspaces.Variables.update(JSON.stringify(json), 'accounts/' + accountId + '/containers/' + containerId + '/workspaces/' + wsid + '/variables/' + json.variableId);
+    return TagManager.Accounts.Containers.Workspaces.Variables.update(JSON.stringify(json), path + '/variables/' + json.variableId);
   }
 }
 
@@ -103,6 +130,7 @@ function processNotes(action) {
           cell.setBackground('#f6b26b');
         }
         if (action === 'push') {
+          cell.setBackground('#fff');
           notesToUpdate.push({
             note: note[0],
             json: JSON.parse(json[index])
@@ -466,31 +494,6 @@ function startProcess(aid, cid) {
   buildTagSheet(containerObj);
   buildTriggerSheet(containerObj);
   buildVariableSheet(containerObj);
-}
-
-function fetchLatestVersion(aid, cid, vid) {
-  var parent = 'accounts/' + aid + '/containers/' + cid + '/versions/' + vid;
-  return TagManager.Accounts.Containers.Versions.get(parent);
-}
-
-function fetchLatestVersionId(aid, cid) {
-  var parent = 'accounts/' + aid + '/containers/' + cid;
-  return TagManager.Accounts.Containers.Version_headers.latest(parent, {
-    fields: 'containerVersionId'
-  }).containerVersionId;
-}
-
-function fetchAccounts() {
-  return TagManager.Accounts.list({
-    fields: 'account(accountId,name)'
-  }).account;
-}
-
-function fetchContainers(aid) {
-  var parent = 'accounts/' + aid;
-  return TagManager.Accounts.Containers.list(parent, {
-    fields: 'container(accountId,containerId,publicId,name)'
-  }).container;
 }
 
 function include(filename) {
