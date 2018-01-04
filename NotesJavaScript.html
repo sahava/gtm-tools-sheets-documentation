@@ -1,16 +1,103 @@
 <script>
   (function() {
+    var mark = document.querySelector('#mark');
+    var push = document.querySelector('#push');
+    var info = document.querySelector('#info');
+    var selectWorkspaces = document.querySelector('#workspaces');
+    var initial = true;
+    var wsname = '';
+    var wsid = '';
+    var aid = '';
+    var cid = '';
+    var count = 0;
+    var length = 0;
+    var notes = [];
+    
+    var arraySortByName = function(array) {
+      return array.sort(function(a, b) {
+        var aName = a.name.toUpperCase();
+        var bName = b.name.toUpperCase();
+        return (aName < bName) ? -1 : (aName > bName) ? 1 : 0;
+      });
+    };
+    
+    var versionCreated = function(version) {
+      info.innerHTML = 'Version ' + version.containerVersionId + ' successfully created. <a href="#" id="build">Build documentation</a> to see the changes.';
+      document.querySelector('#build').addEventListener('click', function(e) {
+        e.preventDefault();
+        google.script.run.withSuccessHandler(function() { google.script.host.close(); }).withFailureHandler(onError).startProcess(version.accountId, version.containerId);
+      });
+    };
+    
+    var updateSingleNote = function() {
+      if (notes.length) {
+        count++;
+        var obj = notes.shift();
+        aid = obj.json.accountId;
+        cid = obj.json.containerId;
+        info.innerHTML = 'Updating notes for ' + obj.json.name + ' (' + count + '/' + length + ').';
+        google.script.run.withSuccessHandler(updateSingleNote).withFailureHandler(onError).updateSingleNote(obj, wsid);
+      } else {
+        info.innerHTML = '<strong>Done updating ' + length + ' notes!</strong> You can now close this modal.<br/><br/>Don\'t forget that you still need to <strong>publish</strong> or <strong>create a version from</strong> the workspace "' + wsname + '" in order to see the notes when you build the documentation again.<br/><br/>You can also click <a href="#" id="createVersion">here</a> to create a version of the workspace at your own risk.';
+        document.querySelector('#createVersion').addEventListener('click', function(e) {
+          e.preventDefault();
+          info.innerHTML = 'Creating version...';
+          google.script.run.withSuccessHandler(versionCreated).withFailureHandler(onError).createVersion(aid, cid, wsid);
+        });
+      }
+    };
+    
+    var updateNotes = function(notesToUpdate) {
+      wsid = selectWorkspaces.options[selectWorkspaces.selectedIndex].value;
+      wsname = selectWorkspaces.options[selectWorkspaces.selectedIndex].innerHTML;
+      length = notesToUpdate.length;
+      count = 0;
+      notes = notesToUpdate;
+      
+      if (length) {
+        updateSingleNote();
+      } else {      
+        onError({message: 'No changed notes found.'});
+      }
+    };
+    
+    var onError = function(error) {
+      info.innerHTML = '<span class="error">ERROR: ' + error.message + '</span>';
+    };
+    
+    var addWorkspaces = function(workspaces) {
+      workspaces = arraySortByName(workspaces);
+      workspaces.forEach(function(workspace) {
+        var option = document.createElement('option');
+        option.value = workspace.workspaceId;
+        option.innerHTML = workspace.name;
+        selectWorkspaces.appendChild(option);
+      });
+      selectWorkspaces.disabled = false;
+    };
+    
     document.querySelector('#close').addEventListener('click', function() {
       google.script.host.close();
     });
     
-    document.querySelector('#mark').addEventListener('click', function() {
-      google.script.run.withSuccessHandler(function() { google.script.host.close(); }).processNotes('mark');
+    mark.addEventListener('click', function() {
+      mark.disabled = true;
+      push.disabled = true;
+      mark.innerText = 'Working...';
+      mark.className = 'share';
+      google.script.run.withSuccessHandler(function() { google.script.host.close(); }).withFailureHandler(onError).processNotes('mark');
     });
     
-    document.querySelector('#push').addEventListener('click', function() {
-      google.script.run.withSuccessHandler(function() { google.script.host.close(); }).processNotes('push');
+    push.addEventListener('click', function() {
+      mark.disabled = true;
+      push.disabled = true;
+      push.innerText = 'Working...';
+      push.className = 'share';
+      selectWorkspaces.disabled = true;
+      google.script.run.withSuccessHandler(updateNotes).withFailureHandler(onError).processNotes('push');
     });
+    
+    google.script.run.withSuccessHandler(addWorkspaces).withFailureHandler(onError).getWorkspaces();
 
   })();
 </script>

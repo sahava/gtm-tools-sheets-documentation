@@ -10,10 +10,15 @@
       Select <strong>Mark changes</strong> to <span style="background: #f6b26b">highlight</span> changed <strong>Notes</strong> fields in the sheets. 
       <br/><br/>
       Select <strong>Push changes</strong> to update changes in the sheets to your Google Tag Manager containers.
+      <br><br>
+      <div id="workspaceWrapper" class="block form-group">
+        <label for="container">Use workspace:</label>
+        <select id="workspaces" disabled></select>
+      </div>
     </div>
     <div class="block">
       <button class="action" id="mark">Mark changes</button>
-      <button class="create" id="update">Push changes</button>
+      <button class="create" id="push">Push changes</button>
       <button id="close">Close</button>
     </div>
     <?!= include('NotesJavaScript'); ?>

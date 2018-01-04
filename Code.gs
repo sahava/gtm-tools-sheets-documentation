@@ -1,12 +1,25 @@
+function createVersion(aid, cid, wsid) {
+  return TagManager.Accounts.Containers.Workspaces.create_version({"name": "Created by GTM Tools Google Sheets add-on", "notes": "Created by GTM Tools Google Sheets add-on"}, 'accounts/' + aid + '/containers/' + cid + '/workspaces/' + wsid).containerVersion;
+}
+
 function insertSheet(sheetName) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
   var ui = SpreadsheetApp.getUi();
   var response;
   if (sheet) {
-    response = ui.alert('Sheet named ' + sheetName + ' already exists! Click OK to overwrite, CANCEL to abort.', ui.ButtonSet.OK_CANCEL);
+    response = ui.alert('Sheet named ' + sheetName + ' already exists! Click OK to overwrite, CANCEL to skip.', ui.ButtonSet.OK_CANCEL);
     return response === ui.Button.OK ? sheet : false;
   }
   return SpreadsheetApp.getActiveSpreadsheet().insertSheet(sheetName);
+}
+
+function getWorkspaces() {
+  var sheet = SpreadsheetApp.getActiveSheet();
+  var containerSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheet.getName().replace(/_.+$/,'_container'));
+  var apiPath = containerSheet.getRange('B10').getValue().replace(/\/versions\/.*/, '');
+  return TagManager.Accounts.Containers.Workspaces.list(apiPath, {
+    fields: 'workspace(name, workspaceId)'
+  }).workspace;
 }
 
 function getAssetOverview(assets) {
@@ -33,36 +46,73 @@ function getAssetOverview(assets) {
   }
 }
 
-function processNotes(action) {
+function buildRangesObject() {
   var namedRanges = SpreadsheetApp.getActiveSpreadsheet().getNamedRanges();
   var rangesObject = {};
   
   namedRanges.forEach(function(range) {
     var name = range.getName();
-    var bareName = name.replace(/(_notes|_json)$/g, '');
-    rangesObject[bareName] = rangesObject[bareName] || {};
-    if (/_notes$/.test(name)) {
-      rangesObject[bareName].notes = range.getRange();
-    }
-    if (/_json$/.test(name)) {    
-      rangesObject[bareName].json = range.getRange();
+    if (/(_notes|_json)$/.test(name)) {
+      var bareName = name.replace(/(_notes|_json)$/g, '');
+      rangesObject[bareName] = rangesObject[bareName] || {};
+      if (/_notes$/.test(name)) {
+        rangesObject[bareName].notes = range.getRange();
+      }
+      if (/_json$/.test(name)) {    
+        rangesObject[bareName].json = range.getRange();
+      }
+      rangesObject[bareName].accountId = name.split('_')[1];
+      rangesObject[bareName].containerId = name.split('_')[2];   
     }
   });
   
-  if (action === 'mark') {
-    for (var item in rangesObject) {
-      var notes = rangesObject[item].notes.getValues();
-      var json = rangesObject[item].json.getValues();
-      notes.forEach(function(note, index) {
-        var jsonNote = JSON.parse(json[index]).notes || '';
-        if ((note[0] === '' && jsonNote === '') || (note[0] === jsonNote)) { 
-          rangesObject[item].notes.getCell(index + 1, 1).setBackground('#fff');
-        } else {
-          rangesObject[item].notes.getCell(index + 1, 1).setBackground('#f6b26b');
-        }
-      });
-    }
+  return rangesObject;
+}
+
+function updateSingleNote(noteToUpdate, wsid) {
+  var json = noteToUpdate.json;
+  json.notes = noteToUpdate.note;
+  
+  var accountId = noteToUpdate.json.accountId;
+  var containerId = noteToUpdate.json.containerId;
+  if ('tagId' in json) {
+    return TagManager.Accounts.Containers.Workspaces.Tags.update(JSON.stringify(json), 'accounts/' + accountId + '/containers/' + containerId + '/workspaces/' + wsid + '/tags/' + json.tagId);
   }
+  if ('triggerId' in json) {
+    return TagManager.Accounts.Containers.Workspaces.Triggers.update(JSON.stringify(json), 'accounts/' + accountId + '/containers/' + containerId + '/workspaces/' + wsid + '/triggers/' + json.triggerId);
+  }
+  if ('variableId' in json) {
+    return TagManager.Accounts.Containers.Workspaces.Variables.update(JSON.stringify(json), 'accounts/' + accountId + '/containers/' + containerId + '/workspaces/' + wsid + '/variables/' + json.variableId);
+  }
+}
+
+function processNotes(action) {
+  var rangesObject = buildRangesObject();
+  var notesToUpdate = [];
+
+  for (var item in rangesObject) {
+    var notes = rangesObject[item].notes.getValues();
+    var json = rangesObject[item].json.getValues();
+    notes.forEach(function(note, index) {
+      var cell = rangesObject[item].notes.getCell(index + 1, 1);
+      var jsonNote = JSON.parse(json[index]).notes || '';
+      if (note[0] === jsonNote) {
+        cell.setBackground('#fff');
+      } else if (note[0] !== jsonNote) {
+        if (action === 'mark') {
+          cell.setBackground('#f6b26b');
+        }
+        if (action === 'push') {
+          notesToUpdate.push({
+            note: note[0],
+            json: JSON.parse(json[index])
+          });
+        }
+      }
+    });
+  }
+  
+  return notesToUpdate;
 }
 
 function formatTags(tags) {
@@ -117,13 +167,35 @@ function formatTriggers(triggers) {
   return data;
 }
 
-function setNamedRanges(sheet,notesIndex,jsonIndex,colLength) {
+function clearInvalidRanges() {
+  var storedRanges = JSON.parse(PropertiesService.getScriptProperties().getProperty('named_ranges')) || {};
+  var storedRangesNames = Object.keys(storedRanges);
+  
+  var namedRanges = SpreadsheetApp.getActiveSpreadsheet().getNamedRanges();
+  var namedRangesNames = namedRanges.map(function(a) { return a.getName(); });
+  
+  storedRangesNames.forEach(function(storedRangeName) {
+    if (namedRangesNames.indexOf(storedRangeName) === -1) {
+      SpreadsheetApp.getActiveSpreadsheet().removeNamedRange(storedRangeName);
+      delete storedRanges[storedRangeName];
+    }
+  });
+  
+  PropertiesService.getScriptProperties().setProperty('named_ranges', JSON.stringify(storedRanges));
+}
+
+function setNamedRanges(sheet,rangeName,notesIndex,jsonIndex,colLength) {
   var notesRange = sheet.getRange(3,notesIndex,colLength,1);
-  var notesRangeName = sheet.getName().replace('-','_') + '_notes';
+  var notesRangeName = rangeName + '_notes';
   SpreadsheetApp.getActiveSpreadsheet().setNamedRange(notesRangeName, SpreadsheetApp.getActiveSpreadsheet().getRange(sheet.getName() + '!' + notesRange.getA1Notation()));
   var jsonRange = sheet.getRange(3,jsonIndex,colLength,1);
-  var jsonRangeName = sheet.getName().replace('-','_') + '_json';
+  var jsonRangeName = rangeName + '_json';
   SpreadsheetApp.getActiveSpreadsheet().setNamedRange(jsonRangeName, SpreadsheetApp.getActiveSpreadsheet().getRange(sheet.getName() + '!' + jsonRange.getA1Notation()));
+  
+  var ranges = JSON.parse(PropertiesService.getScriptProperties().getProperty('named_ranges')) || {};
+  ranges[notesRangeName] = true;
+  ranges[jsonRangeName] = true;
+  PropertiesService.getScriptProperties().setProperty('named_ranges', JSON.stringify(ranges));
 }
 
 function createHeaders(sheet, labels, title) {
@@ -143,6 +215,8 @@ function buildTriggerSheet(containerObj) {
   var sheetName = containerObj.containerPublicId + '_triggers';
   var sheet = insertSheet(sheetName);
   
+  if (sheet === false) { return; }
+  
   var triggerLabels = ['Trigger name', 'Trigger ID', 'Trigger type', 'Folder ID', 'Last modified', 'Notes', 'JSON'];
 
   createHeaders(sheet, triggerLabels, 'Triggers for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
@@ -159,8 +233,10 @@ function buildTriggerSheet(containerObj) {
   if (triggersObject.length) {
     var dataRange = sheet.getRange(3,1,triggersObject.length,triggerLabels.length);
     dataRange.setValues(triggersObject);
-  
-    setNamedRanges(sheet,triggerLabels.indexOf('Notes') + 1,triggerLabels.indexOf('JSON') + 1,triggersObject.length);
+    dataRange.setBackground('#fff');
+    
+    var rangeName = 'triggers_' + containerObj.accountId + '_' + containerObj.containerId;
+    setNamedRanges(sheet,rangeName,triggerLabels.indexOf('Notes') + 1,triggerLabels.indexOf('JSON') + 1,triggersObject.length);
   
     var formats = triggersObject.map(function(a) {
       return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@'];
@@ -173,6 +249,8 @@ function buildTriggerSheet(containerObj) {
 function buildVariableSheet(containerObj) {
   var sheetName = containerObj.containerPublicId + '_variables';
   var sheet = insertSheet(sheetName);
+  
+  if (sheet === false) { return; }
   
   var variableLabels = ['Variable name', 'Variable ID', 'Variable type', 'Folder ID', 'Last modified', 'Notes', 'JSON'];
 
@@ -190,8 +268,10 @@ function buildVariableSheet(containerObj) {
   if (variablesObject.length) {
     var dataRange = sheet.getRange(3,1,variablesObject.length,variableLabels.length);
     dataRange.setValues(variablesObject);
-  
-    setNamedRanges(sheet,variableLabels.indexOf('Notes') + 1,variableLabels.indexOf('JSON') + 1,variablesObject.length);
+    dataRange.setBackground('#fff');
+    
+    var rangeName = 'variables_' + containerObj.accountId + '_' + containerObj.containerId;
+    setNamedRanges(sheet,rangeName,variableLabels.indexOf('Notes') + 1,variableLabels.indexOf('JSON') + 1,variablesObject.length);
   
     var formats = variablesObject.map(function(a) {
       return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@'];
@@ -204,6 +284,8 @@ function buildVariableSheet(containerObj) {
 function buildTagSheet(containerObj) {
   var sheetName = containerObj.containerPublicId + '_tags';
   var sheet = insertSheet(sheetName);
+  
+  if (sheet === false) { return; }
   
   var tagLabels = ['Tag name', 'Tag ID', 'Tag type', 'Folder ID', 'Last modified', 'Firing trigger IDs', 'Exception trigger IDs', 'Setup tag', 'Cleanup tag', 'Notes', 'JSON'];
 
@@ -225,8 +307,10 @@ function buildTagSheet(containerObj) {
   if (tagsObject.length) {
     var dataRange = sheet.getRange(3,1,tagsObject.length,tagLabels.length);
     dataRange.setValues(tagsObject);
+    dataRange.setBackground('#fff');
 
-    setNamedRanges(sheet,tagLabels.indexOf('Notes') + 1,tagLabels.indexOf('JSON') + 1,tagsObject.length);
+    var rangeName = 'tags_' + containerObj.accountId + '_' + containerObj.containerId;
+    setNamedRanges(sheet,rangeName,tagLabels.indexOf('Notes') + 1,tagLabels.indexOf('JSON') + 1,tagsObject.length);
   
     var formats = tagsObject.map(function(a) {
       return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@', '@', '@', '@', '@'];
@@ -239,6 +323,9 @@ function buildTagSheet(containerObj) {
 function buildContainerSheet(containerObj) {
   var sheetName = containerObj.containerPublicId + '_container';
   var sheet = insertSheet(sheetName);
+  
+  if (sheet === false) { return; }
+  
   sheet.setColumnWidth(1, 190);
   sheet.setColumnWidth(2, 340);
   
@@ -418,8 +505,9 @@ function openContainerSelector() {
 }
 
 function openNotesModal() {
+  clearInvalidRanges();
   var ui = SpreadsheetApp.getUi();
-  var html = HtmlService.createTemplateFromFile('NotesModal').evaluate().setWidth(400).setHeight(150);
+  var html = HtmlService.createTemplateFromFile('NotesModal').evaluate().setWidth(400).setHeight(220);
   SpreadsheetApp.getUi().showModalDialog(html, 'Process Notes');
 }
 
