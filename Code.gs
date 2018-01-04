@@ -245,7 +245,7 @@ function buildTriggerSheet(containerObj) {
   
   if (sheet === false) { return; }
   
-  var triggerLabels = ['Trigger name', 'Trigger ID', 'Trigger type', 'Folder ID', 'Last modified', 'Notes', 'JSON'];
+  var triggerLabels = ['Trigger name', 'Trigger ID', 'Trigger type', 'Folder ID', 'Last modified', 'Notes', 'JSON (do NOT edit!)'];
 
   createHeaders(sheet, triggerLabels, 'Triggers for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
 
@@ -255,7 +255,7 @@ function buildTriggerSheet(containerObj) {
   sheet.setColumnWidth(4, 75);
   sheet.setColumnWidth(5, 130);
   sheet.setColumnWidth(6, 305);
-  sheet.setColumnWidth(7, 100);
+  sheet.setColumnWidth(7, 130);
   
   var triggersObject = formatTriggers(containerObj.triggers);
   if (triggersObject.length) {
@@ -264,7 +264,7 @@ function buildTriggerSheet(containerObj) {
     dataRange.setBackground('#fff');
     
     var rangeName = 'triggers_' + containerObj.accountId + '_' + containerObj.containerId;
-    setNamedRanges(sheet,rangeName,triggerLabels.indexOf('Notes') + 1,triggerLabels.indexOf('JSON') + 1,triggersObject.length);
+    setNamedRanges(sheet,rangeName,triggerLabels.indexOf('Notes') + 1,triggerLabels.indexOf('JSON (do NOT edit!)') + 1,triggersObject.length);
   
     var formats = triggersObject.map(function(a) {
       return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@'];
@@ -280,7 +280,7 @@ function buildVariableSheet(containerObj) {
   
   if (sheet === false) { return; }
   
-  var variableLabels = ['Variable name', 'Variable ID', 'Variable type', 'Folder ID', 'Last modified', 'Notes', 'JSON'];
+  var variableLabels = ['Variable name', 'Variable ID', 'Variable type', 'Folder ID', 'Last modified', 'Notes', 'JSON (do NOT edit!)'];
 
   createHeaders(sheet, variableLabels, 'Variables for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
 
@@ -290,7 +290,7 @@ function buildVariableSheet(containerObj) {
   sheet.setColumnWidth(4, 75);
   sheet.setColumnWidth(5, 130);
   sheet.setColumnWidth(6, 305);
-  sheet.setColumnWidth(7, 100);
+  sheet.setColumnWidth(7, 130);
   
   var variablesObject = formatVariables(containerObj.variables);
   if (variablesObject.length) {
@@ -299,7 +299,7 @@ function buildVariableSheet(containerObj) {
     dataRange.setBackground('#fff');
     
     var rangeName = 'variables_' + containerObj.accountId + '_' + containerObj.containerId;
-    setNamedRanges(sheet,rangeName,variableLabels.indexOf('Notes') + 1,variableLabels.indexOf('JSON') + 1,variablesObject.length);
+    setNamedRanges(sheet,rangeName,variableLabels.indexOf('Notes') + 1,variableLabels.indexOf('JSON (do NOT edit!)') + 1,variablesObject.length);
   
     var formats = variablesObject.map(function(a) {
       return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@'];
@@ -315,7 +315,7 @@ function buildTagSheet(containerObj) {
   
   if (sheet === false) { return; }
   
-  var tagLabels = ['Tag name', 'Tag ID', 'Tag type', 'Folder ID', 'Last modified', 'Firing trigger IDs', 'Exception trigger IDs', 'Setup tag', 'Cleanup tag', 'Notes', 'JSON'];
+  var tagLabels = ['Tag name', 'Tag ID', 'Tag type', 'Folder ID', 'Last modified', 'Firing trigger IDs', 'Exception trigger IDs', 'Setup tag', 'Cleanup tag', 'Notes', 'JSON (do NOT edit!)'];
 
   createHeaders(sheet, tagLabels, 'Tags for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
 
@@ -329,7 +329,7 @@ function buildTagSheet(containerObj) {
   sheet.setColumnWidth(8, 205);
   sheet.setColumnWidth(9, 205);
   sheet.setColumnWidth(10, 305);
-  sheet.setColumnWidth(11, 100);
+  sheet.setColumnWidth(11, 130);
   
   var tagsObject = formatTags(containerObj.tags);
   if (tagsObject.length) {
@@ -338,7 +338,7 @@ function buildTagSheet(containerObj) {
     dataRange.setBackground('#fff');
 
     var rangeName = 'tags_' + containerObj.accountId + '_' + containerObj.containerId;
-    setNamedRanges(sheet,rangeName,tagLabels.indexOf('Notes') + 1,tagLabels.indexOf('JSON') + 1,tagsObject.length);
+    setNamedRanges(sheet,rangeName,tagLabels.indexOf('Notes') + 1,tagLabels.indexOf('JSON (do NOT edit!)') + 1,tagsObject.length);
   
     var formats = tagsObject.map(function(a) {
       return ['@', '@', '@', '@', 'dd/mm/yy at h:mm', '@', '@', '@', '@', '@', '@'];
