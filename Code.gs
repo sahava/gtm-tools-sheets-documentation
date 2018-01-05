@@ -245,6 +245,8 @@ function buildTriggerSheet(containerObj) {
   
   if (sheet === false) { return; }
   
+  sheet.clear();
+  
   var triggerLabels = ['Trigger name', 'Trigger ID', 'Trigger type', 'Folder ID', 'Last modified', 'Notes', 'JSON (do NOT edit!)'];
 
   createHeaders(sheet, triggerLabels, 'Triggers for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
@@ -280,6 +282,8 @@ function buildVariableSheet(containerObj) {
   
   if (sheet === false) { return; }
   
+  sheet.clear();
+  
   var variableLabels = ['Variable name', 'Variable ID', 'Variable type', 'Folder ID', 'Last modified', 'Notes', 'JSON (do NOT edit!)'];
 
   createHeaders(sheet, variableLabels, 'Variables for container ' + containerObj.containerPublicId + ' (' + containerObj.containerName + ').');
@@ -314,6 +318,8 @@ function buildTagSheet(containerObj) {
   var sheet = insertSheet(sheetName);
   
   if (sheet === false) { return; }
+  
+  sheet.clear();
   
   var tagLabels = ['Tag name', 'Tag ID', 'Tag type', 'Folder ID', 'Last modified', 'Firing trigger IDs', 'Exception trigger IDs', 'Setup tag', 'Cleanup tag', 'Notes', 'JSON (do NOT edit!)'];
 
