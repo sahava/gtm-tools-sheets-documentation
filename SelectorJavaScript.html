@@ -9,6 +9,7 @@
         temp = document.createElement('option');
         temp.value = container.containerId;
         temp.innerHTML = container.name;
+        temp.selected = container.selected;
         containerSelect.appendChild(temp);
       });
       containerSelect.addEventListener('change', function() {
@@ -39,11 +40,12 @@
       resetFields();
       var accountSelect = document.querySelector('#accounts');
       var temp;
-      accountSummary = arraySortByName(accountSummary);  
+      accountSummary = arraySortByName(accountSummary);
       accountSummary.forEach(function(acct) {
         temp = document.createElement('option');
         temp.value = acct.accountId;
         temp.innerHTML = acct.name;
+        temp.selected = acct.selected;
         accountSelect.appendChild(temp);
       });      
       accountSelect.addEventListener('change', function(e) {
@@ -55,7 +57,7 @@
         buildButton.disabled = true;
         google.script.run.withSuccessHandler(addContainers).fetchContainers(accountId);
       });
-      google.script.run.withSuccessHandler(addContainers).fetchContainers(accountSelect.options[accountSelect.selectedIndex].value);
+      google.script.run.withSuccessHandler(addContainers).fetchContainersWithSelectedMarked(accountSelect.options[accountSelect.selectedIndex].value);
     };
     
     var onError = function(error) {
@@ -63,7 +65,7 @@
       info.innerHTML = '<span class="error">' + error.message + '</span>';
     };
     
-    google.script.run.withSuccessHandler(addAccounts).fetchAccounts();
+    google.script.run.withSuccessHandler(addAccounts).fetchAccountsWithSelectedMarked();
     
     document.querySelector('#close').addEventListener('click', function() {
       google.script.host.close();

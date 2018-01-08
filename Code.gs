@@ -30,12 +30,57 @@ function createVersion(aid, cid, wsid) {
 }
 
 function getWorkspaces() {
-  var sheet = SpreadsheetApp.getActiveSheet();
-  var containerSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheet.getName().replace(/_.+$/,'_container'));
-  var apiPath = containerSheet.getRange('B10').getValue().replace(/\/versions\/.*/, '');
+  var apiPath = getApiPath();
+  if (!apiPath) {
+    throw new Error('No valid documentation sheet selected.');
+  }
   return TagManager.Accounts.Containers.Workspaces.list(apiPath, {
     fields: 'workspace(name, workspaceId)'
   }).workspace;
+}
+
+function fetchContainersWithSelectedMarked(aid) {
+  var containerSummary = fetchContainers(aid);
+  var selectedContainerId = getContainerIdFromApiPath();
+  containerSummary.forEach(function(cont) {
+    cont.selected = cont.containerId === selectedContainerId;
+  });
+  return containerSummary;
+}
+
+function fetchAccountsWithSelectedMarked() {
+  var accountSummary = fetchAccounts();
+  var selectedAccountId = getAccountIdFromApiPath();
+  accountSummary.forEach(function(acct) {
+    acct.selected = acct.accountId === selectedAccountId;
+  });
+  return accountSummary;
+}
+
+function getContainerPublicIdFromSheetName() {
+  var sheet = SpreadsheetApp.getActiveSheet().getName();
+  var cid = sheet.match(/^GTM-[a-zA-Z0-9]{4,}/);
+  return cid.length ? cid[0] : 'N/A';
+}
+
+function getAccountIdFromApiPath() {
+  var apiPath = getApiPath();
+  return apiPath.split('/')[1];
+}
+
+function getContainerIdFromApiPath() {
+  var apiPath = getApiPath();
+  return apiPath.split('/')[3];
+}
+
+function getApiPath() {
+  var sheet = SpreadsheetApp.getActiveSheet().getName();
+  if (!/^GTM-[a-zA-Z0-9]{4,}_(container|tags|variables|triggers)$/.test(sheet)) {
+    return false;
+  }
+  var containerSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheet.replace(/_.+$/,'_container'));
+  var apiPath = containerSheet.getRange('B10').getValue().replace(/\/versions\/.*/, '');
+  return apiPath;
 }
 
 function insertSheet(sheetName) {
@@ -116,6 +161,8 @@ function updateSingleNote(noteToUpdate, wsid) {
 function processNotes(action) {
   var rangesObject = buildRangesObject();
   var notesToUpdate = [];
+  var selectedAccountId = getAccountIdFromApiPath();
+  var selectedContainerId = getContainerIdFromApiPath();
 
   for (var item in rangesObject) {
     var notes = rangesObject[item].notes.getValues();
@@ -129,7 +176,7 @@ function processNotes(action) {
         if (action === 'mark') {
           cell.setBackground('#f6b26b');
         }
-        if (action === 'push') {
+        if (action === 'push' && selectedAccountId === rangesObject[item].accountId && selectedContainerId === rangesObject[item].containerId) {
           cell.setBackground('#fff');
           notesToUpdate.push({
             note: note[0],
@@ -516,7 +563,7 @@ function openContainerSelector() {
 function openNotesModal() {
   clearInvalidRanges();
   var ui = SpreadsheetApp.getUi();
-  var html = HtmlService.createTemplateFromFile('NotesModal').evaluate().setWidth(400).setHeight(220);
+  var html = HtmlService.createTemplateFromFile('NotesModal').evaluate().setWidth(400).setHeight(240);
   SpreadsheetApp.getUi().showModalDialog(html, 'Process Notes');
 }
 
