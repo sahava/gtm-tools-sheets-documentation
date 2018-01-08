@@ -59,7 +59,7 @@ function fetchAccountsWithSelectedMarked() {
 
 function getContainerPublicIdFromSheetName() {
   var sheet = SpreadsheetApp.getActiveSheet().getName();
-  var cid = sheet.match(/^GTM-[a-zA-Z0-9]{4,}/);
+  var cid = sheet.match(/^GTM-[a-zA-Z0-9]{4,}/) || [];
   return cid.length ? cid[0] : 'N/A';
 }
 
