@@ -65,12 +65,12 @@ function getContainerPublicIdFromSheetName() {
 
 function getAccountIdFromApiPath() {
   var apiPath = getApiPath();
-  return apiPath.split('/')[1];
+  return apiPath ? apiPath.split('/')[1] : undefined;
 }
 
 function getContainerIdFromApiPath() {
   var apiPath = getApiPath();
-  return apiPath.split('/')[3];
+  return apiPath ? apiPath.split('/')[3] : undefined;
 }
 
 function getApiPath() {
@@ -569,8 +569,7 @@ function openNotesModal() {
 
 function onOpen() {
   var menu = SpreadsheetApp.getUi().createAddonMenu();
-  menu.addSubMenu(SpreadsheetApp.getUi().createMenu('Documentation builder')
-                  .addItem('Build documentation', 'openContainerSelector')
-                  .addItem('Manage notes', 'openNotesModal'));
+  menu.addItem('Build documentation', 'openContainerSelector')
+  menu.addItem('Manage notes', 'openNotesModal')
   menu.addToUi();
 }

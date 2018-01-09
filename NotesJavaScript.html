@@ -62,6 +62,7 @@
     };
     
     var onError = function(error) {
+      mark.disabled = push.disabled = true;
       info.innerHTML = '<span class="error">' + error.message + '</span>';
     };
     
