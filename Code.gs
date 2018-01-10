@@ -273,7 +273,7 @@ function formatTriggers(triggers) {
 }
 
 function clearInvalidRanges() {
-  var storedRanges = JSON.parse(PropertiesService.getScriptProperties().getProperty('named_ranges')) || {};
+  var storedRanges = JSON.parse(PropertiesService.getUserProperties().getProperty('named_ranges')) || {};
   var storedRangesNames = Object.keys(storedRanges);
   
   var namedRanges = SpreadsheetApp.getActiveSpreadsheet().getNamedRanges();
@@ -286,7 +286,7 @@ function clearInvalidRanges() {
     }
   });
   
-  PropertiesService.getScriptProperties().setProperty('named_ranges', JSON.stringify(storedRanges));
+  PropertiesService.getUserProperties().setProperty('named_ranges', JSON.stringify(storedRanges));
 }
 
 function setNamedRanges(sheet,rangeName,notesIndex,jsonIndex,colLength) {
@@ -297,10 +297,10 @@ function setNamedRanges(sheet,rangeName,notesIndex,jsonIndex,colLength) {
   var jsonRangeName = rangeName + '_json';
   SpreadsheetApp.getActiveSpreadsheet().setNamedRange(jsonRangeName, SpreadsheetApp.getActiveSpreadsheet().getRange(sheet.getName() + '!' + jsonRange.getA1Notation()));
   
-  var ranges = JSON.parse(PropertiesService.getScriptProperties().getProperty('named_ranges')) || {};
+  var ranges = JSON.parse(PropertiesService.getUserProperties().getProperty('named_ranges')) || {};
   ranges[notesRangeName] = true;
   ranges[jsonRangeName] = true;
-  PropertiesService.getScriptProperties().setProperty('named_ranges', JSON.stringify(ranges));
+  PropertiesService.getUserProperties().setProperty('named_ranges', JSON.stringify(ranges));
 }
 
 function createHeaders(sheet, labels, title) {
