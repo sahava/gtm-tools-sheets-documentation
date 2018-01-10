@@ -1,0 +1,28 @@
+<script>
+  (function() {
+    var mark = document.querySelector('#mark');
+    var info = document.querySelector('#info');
+    
+    var changesMarked = function(status) {
+      mark.innerText = 'Finished';
+      info.innerHTML = '<strong>Done</strong>!<br/><br/>' + status + ' changed Notes highlighted.';
+    };
+    
+    var onError = function(error) {
+      mark.innerText = 'Error';
+      info.innerHTML = '<span class="error">' + error.message + '</span>';
+    };
+
+    document.querySelector('#close').addEventListener('click', function() {
+      google.script.host.close();
+    });
+    
+    mark.addEventListener('click', function() {
+      mark.disabled = true;
+      mark.innerText = 'Working...';
+      mark.className = 'share';
+      google.script.run.withSuccessHandler(changesMarked).withFailureHandler(onError).markChangedNotes();
+    });
+ 
+  })();
+</script>

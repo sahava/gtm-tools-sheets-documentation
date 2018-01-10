@@ -13,16 +13,18 @@ function fetchLatestVersionId(aid, cid) {
 }
 
 function fetchAccounts() {
-  return TagManager.Accounts.list({
+  var accounts = TagManager.Accounts.list({
     fields: 'account(accountId,name)'
   }).account;
+  return accounts || [];
 }
 
 function fetchContainers(aid) {
   var parent = 'accounts/' + aid;
-  return TagManager.Accounts.Containers.list(parent, {
+  var containers = TagManager.Accounts.Containers.list(parent, {
     fields: 'container(accountId,containerId,publicId,name)'
   }).container;
+  return containers || [];
 }
 
 function createVersion(aid, cid, wsid) {
@@ -31,9 +33,11 @@ function createVersion(aid, cid, wsid) {
 
 function getWorkspaces() {
   var apiPath = getApiPath();
+  
   if (!apiPath) {
-    throw new Error('No valid documentation sheet selected.');
+    return false;
   }
+  
   return TagManager.Accounts.Containers.Workspaces.list(apiPath, {
     fields: 'workspace(name, workspaceId)'
   }).workspace;
@@ -65,12 +69,12 @@ function getContainerPublicIdFromSheetName() {
 
 function getAccountIdFromApiPath() {
   var apiPath = getApiPath();
-  return apiPath ? apiPath.split('/')[1] : undefined;
+  return apiPath ? apiPath.split('/')[1] : '';
 }
 
 function getContainerIdFromApiPath() {
   var apiPath = getApiPath();
-  return apiPath ? apiPath.split('/')[3] : undefined;
+  return apiPath ? apiPath.split('/')[3] : '';
 }
 
 function getApiPath() {
@@ -156,6 +160,32 @@ function updateSingleNote(noteToUpdate, wsid) {
   if ('variableId' in json) {
     return TagManager.Accounts.Containers.Workspaces.Variables.update(JSON.stringify(json), path + '/variables/' + json.variableId);
   }
+}
+
+function markChangedNotes() {
+  var rangesObject = buildRangesObject();
+  var count = 0;
+  
+  if (Object.keys(rangesObject).length === 0) {
+    throw new Error('No valid documentation sheets found. Remember to run the <strong>Build documentation</strong> menu option first!');
+  }
+  
+  for (var item in rangesObject) {
+    var notes = rangesObject[item].notes.getValues();
+    var json = rangesObject[item].json.getValues();
+    notes.forEach(function(note, index) {
+      var cell = rangesObject[item].notes.getCell(index + 1, 1);
+      var jsonNote = JSON.parse(json[index]).notes || '';
+      if (note[0] === jsonNote) {
+        cell.setBackground('#fff');
+      } else if (note[0] !== jsonNote) {
+        cell.setBackground('#f6b26b');
+        count++;
+      }
+    });
+  } 
+    
+  return count;
 }
 
 function processNotes(action) {
@@ -525,7 +555,7 @@ function buildContainerSheet(containerObj) {
 
 function startProcess(aid, cid) {
   var latestVersionId = fetchLatestVersionId(aid, cid);
-  if (latestVersionId === '0') { throw new Error('No latest version found!'); }
+  if (latestVersionId === '0') { throw new Error('You need to create or publish a version in the container before you can build its documentaiton!'); }
   var latestVersion = fetchLatestVersion(aid, cid, latestVersionId);
   var containerObj = {
     accountId: latestVersion.container.accountId,
@@ -557,19 +587,35 @@ function include(filename) {
 function openContainerSelector() {
   var ui = SpreadsheetApp.getUi();
   var html = HtmlService.createTemplateFromFile('ContainerSelector').evaluate().setWidth(400).setHeight(220);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Select Container');
+  SpreadsheetApp.getUi().showModalDialog(html, 'Build documentation');
 }
 
-function openNotesModal() {
+function openMarkChangesModal() {
   clearInvalidRanges();
   var ui = SpreadsheetApp.getUi();
-  var html = HtmlService.createTemplateFromFile('NotesModal').evaluate().setWidth(400).setHeight(240);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Process Notes');
+  if (Object.keys(buildRangesObject()).length === 0) {
+    ui.alert('No valid documentation sheets found! Run "Build documentation" if necessary.');
+    return;
+  }
+  var html = HtmlService.createTemplateFromFile('MarkChangesModal').evaluate().setWidth(400).setHeight(100);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Mark changes to Notes');
+}
+
+function openPushChangesModal() {
+  clearInvalidRanges();
+  var ui = SpreadsheetApp.getUi();
+  if (getApiPath() === false) {
+    ui.alert('You need to have a valid documentation sheet selected first! Run "Build documentation" if necessary.', ui.ButtonSet.OK);
+    return;
+  }
+  var html = HtmlService.createTemplateFromFile('PushChangesModal').evaluate().setWidth(400).setHeight(280);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Push changes to Notes');
 }
 
 function onOpen() {
   var menu = SpreadsheetApp.getUi().createAddonMenu();
   menu.addItem('Build documentation', 'openContainerSelector')
-  menu.addItem('Manage notes', 'openNotesModal')
+  menu.addItem('Mark changes to Notes', 'openMarkChangesModal')
+  menu.addItem('Push changes to Notes', 'openPushChangesModal')
   menu.addToUi();
 }

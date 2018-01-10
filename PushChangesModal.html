@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <?!= include('Styles') ?>
+  </head>
+  <body>
+    <div class="block" id="info" style="display: none;">
+      When you select <strong>Push changes</strong>, the tool will look for changed Notes fields in the following sheets:<br/><br/>
+      <?= getContainerPublicIdFromSheetName() ?>_tags<br/>
+      <?= getContainerPublicIdFromSheetName() ?>_triggers<br/>
+      <?= getContainerPublicIdFromSheetName() ?>_variables<br/><br/>
+      The changes will be pushed to container <?= getContainerPublicIdFromSheetName() ?> using the workspace you select below.
+      <br/><br/>
+      <div id="workspaceWrapper" class="block form-group">
+        <label for="container">Use workspace:</label>
+        <select id="workspaces" disabled></select>
+      </div>
+    </div>
+    <div class="block">
+      <button class="create" id="push" disabled>Push changes</button>
+      <button id="close">Close</button>
+    </div>
+    <?!= include('PushChangesJavaScript'); ?>
+</body>
+</html>
+
+

@@ -1,9 +1,23 @@
 <script>
   (function() {
+    var info = document.querySelector('#info');
+    var buildButton = document.querySelector('#build');
+    var accountSelect = document.querySelector('#accounts');
+    var containerSelect = document.querySelector('#containers');        
+    var accountWrapper = document.querySelector('#accountWrapper');
+    var containerWrapper = document.querySelector('#containerWrapper');
+    var accounts = document.querySelector('#accounts');
+    var containers = document.querySelector('#containers');
+
     var addContainers = function(containerSummary) {
-      var containerSelect = document.querySelector('#containers');
-      var buildButton = document.querySelector('#build');
       var temp;
+      if (containerSummary.length === 0) {
+        temp = document.createElement('option');
+        temp.innerHTML = 'No containers found for user.';
+        containerSelect.appendChild(temp);
+        containerSelect.disabled = true;
+        return;
+      }
       containerSummary = arraySortByName(containerSummary);
       containerSummary.forEach(function(container) {
         temp = document.createElement('option');
@@ -16,9 +30,8 @@
         resetFields();
         buildButton.disabled = false;
       });
-      document.querySelector('#loading').style.display = 'none';
-      document.querySelector('#accountWrapper').style.display = 'block';
-      document.querySelector('#containerWrapper').style.display = 'block';
+      accountWrapper.style.display = 'block';
+      containerWrapper.style.display = 'block';
       containerSelect.disabled = false;
       buildButton.disabled = false;
     };  
@@ -32,13 +45,15 @@
     };
     
     var resetFields = function() {
-      var info = document.querySelector('#info');
       info.innerHTML = 'Select the Google Tag Manager container, whose <strong>latest version</strong> you want to use to generate the container documentation.';
     };
     
     var addAccounts = function(accountSummary) {
+      if (accountSummary.length === 0) {
+        info.innerHTML = 'GTM Tools by Simo Ahava requires that you have access to at least one <a href="https://tagmanager.google.com/">Google Tag Manager</a> <strong>account and container</strong>.<br/><br/>The tool could not find any GTM accounts for your login.<br/><br/>Please <a href="https://support.google.com/tagmanager/answer/6103696?hl=en">create an account and container</a>, or log in with a user that has access to these.'
+        return;
+      }  
       resetFields();
-      var accountSelect = document.querySelector('#accounts');
       var temp;
       accountSummary = arraySortByName(accountSummary);
       accountSummary.forEach(function(acct) {
@@ -50,36 +65,31 @@
       });      
       accountSelect.addEventListener('change', function(e) {
         var accountId = e.target.value;
-        var containerSelect = document.querySelector('#containers');
-        var buildButton = document.querySelector('#build');
         containerSelect.disabled = true;
         containerSelect.innerHTML = '';
         buildButton.disabled = true;
-        google.script.run.withSuccessHandler(addContainers).fetchContainers(accountId);
+        google.script.run.withSuccessHandler(addContainers).withFailureHandler(onError).fetchContainers(accountId);
       });
-      google.script.run.withSuccessHandler(addContainers).fetchContainersWithSelectedMarked(accountSelect.options[accountSelect.selectedIndex].value);
+      google.script.run.withSuccessHandler(addContainers).withFailureHandler(onError).fetchContainersWithSelectedMarked(accountSelect.options[accountSelect.selectedIndex].value);
     };
     
     var onError = function(error) {
-      var info = document.querySelector('#info');
+      buildButton.innerText = 'Error';
       info.innerHTML = '<span class="error">' + error.message + '</span>';
     };
     
-    google.script.run.withSuccessHandler(addAccounts).fetchAccountsWithSelectedMarked();
+    google.script.run.withSuccessHandler(addAccounts).withFailureHandler(onError).fetchAccountsWithSelectedMarked();
     
     document.querySelector('#close').addEventListener('click', function() {
       google.script.host.close();
     });
     
     document.querySelector('#build').addEventListener('click', function() {
-      var buildButton = document.querySelector('#build');
-      var accounts = document.querySelector('#accounts');
-      var containers = document.querySelector('#containers');
       accounts.disabled = true;
       containers.disabled = true;
       buildButton.disabled = true;
       buildButton.className = 'share';
-      buildButton.innerHTML = 'Working...';
+      buildButton.innerText = 'Working...';
       google.script.run
         .withFailureHandler(onError)
         .withSuccessHandler(function() { google.script.host.close(); })
